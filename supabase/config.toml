@@ -1,0 +1,4 @@
+project_id = "giucniweqsloezqppsac"
+
+[functions.analyze-phishing]
+verify_jwt = false
