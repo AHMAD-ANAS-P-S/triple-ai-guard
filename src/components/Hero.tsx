@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Shield, Zap, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-shield.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+  
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background with gradient overlay */}
@@ -63,7 +66,7 @@ const Hero = () => {
             <Button 
               size="lg" 
               className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow"
-              onClick={() => window.location.href = "/demo"}
+              onClick={() => navigate("/demo")}
             >
               <Shield className="w-5 h-5 mr-2" />
               Get Protected Now
@@ -72,10 +75,10 @@ const Hero = () => {
               size="lg" 
               variant="outline" 
               className="border-primary/50 hover:bg-primary/10"
-              onClick={() => window.location.href = "/demo"}
+              onClick={() => navigate("/dashboard")}
             >
               <Eye className="w-5 h-5 mr-2" />
-              See Demo
+              View Dashboard
             </Button>
           </div>
 

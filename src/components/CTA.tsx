@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Shield, Download } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const CTA = () => {
+  const navigate = useNavigate();
+  
   return (
     <section className="py-20 relative overflow-hidden">
       {/* Background with glow effect */}
@@ -55,7 +58,7 @@ const CTA = () => {
                 <Button 
                   size="lg" 
                   className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow"
-                  onClick={() => window.location.href = "/demo"}
+                  onClick={() => navigate("/demo")}
                 >
                   <Download className="w-5 h-5 mr-2" />
                   Try Live Demo
@@ -64,7 +67,7 @@ const CTA = () => {
                   size="lg" 
                   variant="outline" 
                   className="border-primary/50 hover:bg-primary/10"
-                  onClick={() => window.location.href = "/dashboard"}
+                  onClick={() => navigate("/dashboard")}
                 >
                   View Dashboard
                 </Button>

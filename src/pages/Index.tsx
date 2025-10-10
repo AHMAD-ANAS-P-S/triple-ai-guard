@@ -5,6 +5,7 @@ import TripleAI from "@/components/TripleAI";
 import DecisionEngine from "@/components/DecisionEngine";
 import HowItWorks from "@/components/HowItWorks";
 import Features from "@/components/Features";
+import UserGuide from "@/components/UserGuide";
 import CTA from "@/components/CTA";
 
 const Index = () => {
@@ -20,6 +21,9 @@ const Index = () => {
         <HowItWorks />
       </div>
       <Features />
+      <div id="guide">
+        <UserGuide />
+      </div>
       <CTA />
       <Footer />
     </main>
