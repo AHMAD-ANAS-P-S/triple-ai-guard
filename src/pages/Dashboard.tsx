@@ -5,6 +5,7 @@ import { Shield, AlertTriangle, CheckCircle, TrendingUp, Clock, Globe, Mail } fr
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import ThreatMap from "@/components/ThreatMap";
 
 const Dashboard = () => {
   const [threats, setThreats] = useState<any[]>([]);
@@ -165,6 +166,11 @@ const Dashboard = () => {
                 <div className="text-sm text-muted-foreground">Avg Response Time</div>
               </div>
             </Card>
+          </div>
+
+          {/* Global Threat Map */}
+          <div className="mb-8">
+            <ThreatMap threats={threats} />
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
