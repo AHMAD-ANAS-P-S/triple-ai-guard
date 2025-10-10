@@ -6,6 +6,117 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Threat intelligence check using AlienVault OTX
+async function checkThreatIntel(indicator: string, type: 'url' | 'domain' | 'ip'): Promise<any> {
+  const OTX_API_KEY = Deno.env.get('ALIENVAULT_OTX_API_KEY');
+  if (!OTX_API_KEY) return null;
+
+  try {
+    let endpoint = '';
+    if (type === 'url') {
+      const urlObj = new URL(indicator);
+      endpoint = `https://otx.alienvault.com/api/v1/indicators/domain/${urlObj.hostname}/general`;
+    } else if (type === 'domain') {
+      endpoint = `https://otx.alienvault.com/api/v1/indicators/domain/${indicator}/general`;
+    } else if (type === 'ip') {
+      endpoint = `https://otx.alienvault.com/api/v1/indicators/IPv4/${indicator}/general`;
+    }
+
+    const response = await fetch(endpoint, {
+      headers: { 'X-OTX-API-KEY': OTX_API_KEY }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        pulses: data.pulse_info?.count || 0,
+        reputation: data.reputation || 0,
+        malicious: (data.pulse_info?.count || 0) > 0
+      };
+    }
+  } catch (error) {
+    console.error('OTX check error:', error);
+  }
+  return null;
+}
+
+// Sandbox analysis using URLScan.io
+async function sandboxAnalysis(url: string): Promise<any> {
+  const URLSCAN_API_KEY = Deno.env.get('URLSCAN_API_KEY');
+  if (!URLSCAN_API_KEY) return null;
+
+  try {
+    // Submit URL for scanning
+    const submitResponse = await fetch('https://urlscan.io/api/v1/scan/', {
+      method: 'POST',
+      headers: {
+        'API-Key': URLSCAN_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ url, visibility: 'unlisted' })
+    });
+
+    if (submitResponse.ok) {
+      const submitData = await submitResponse.json();
+      
+      // Wait for scan to complete (simplified - in production use polling)
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      
+      // Get results
+      const resultResponse = await fetch(submitData.api, {
+        headers: { 'API-Key': URLSCAN_API_KEY }
+      });
+
+      if (resultResponse.ok) {
+        const resultData = await resultResponse.json();
+        return {
+          malicious: resultData.verdicts?.overall?.malicious || false,
+          score: resultData.verdicts?.overall?.score || 0,
+          categories: resultData.verdicts?.overall?.categories || [],
+          screenshot: resultData.task?.screenshotURL
+        };
+      }
+    }
+  } catch (error) {
+    console.error('URLScan error:', error);
+  }
+  return null;
+}
+
+// Enhanced infrastructure analysis
+async function analyzeInfrastructure(url: string): Promise<any> {
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+    
+    // DNS lookup to get IP
+    const dnsResponse = await fetch(`https://dns.google/resolve?name=${domain}&type=A`);
+    const dnsData = await dnsResponse.json();
+    const ip = dnsData.Answer?.[0]?.data;
+
+    // WHOIS-like data (using IP geolocation)
+    let geoData = null;
+    if (ip) {
+      const geoResponse = await fetch(`https://ipapi.co/${ip}/json/`);
+      if (geoResponse.ok) {
+        geoData = await geoResponse.json();
+      }
+    }
+
+    return {
+      domain,
+      ip: ip || 'unknown',
+      country: geoData?.country_name || 'unknown',
+      asn: geoData?.asn || 'unknown',
+      org: geoData?.org || 'unknown',
+      isp: geoData?.org || 'unknown'
+    };
+  } catch (error) {
+    console.error('Infrastructure analysis error:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -29,7 +140,33 @@ serve(async (req) => {
     const content = url || emailContent;
     const contentType = url ? 'URL' : 'Email/SMS content';
 
-    // Call Lovable AI for triple-AI analysis
+    // Perform threat intelligence and infrastructure analysis in parallel
+    const [threatIntel, infrastructure, sandbox] = await Promise.all([
+      url ? checkThreatIntel(url, 'url') : Promise.resolve(null),
+      url ? analyzeInfrastructure(url) : Promise.resolve(null),
+      url ? sandboxAnalysis(url) : Promise.resolve(null)
+    ]);
+
+    console.log('Threat Intel:', threatIntel);
+    console.log('Infrastructure:', infrastructure);
+    console.log('Sandbox:', sandbox);
+
+    // Build enhanced context for AI analysis
+    let enhancedContext = `${content}`;
+    
+    if (infrastructure) {
+      enhancedContext += `\n\nINFRASTRUCTURE ANALYSIS:\n- Domain: ${infrastructure.domain}\n- IP Address: ${infrastructure.ip}\n- Country: ${infrastructure.country}\n- ASN: ${infrastructure.asn}\n- Organization: ${infrastructure.org}`;
+    }
+    
+    if (threatIntel) {
+      enhancedContext += `\n\nTHREAT INTELLIGENCE:\n- Known Malicious: ${threatIntel.malicious ? 'YES' : 'NO'}\n- Threat Pulses: ${threatIntel.pulses}\n- Reputation Score: ${threatIntel.reputation}`;
+    }
+
+    if (sandbox) {
+      enhancedContext += `\n\nSANDBOX ANALYSIS:\n- Malicious Verdict: ${sandbox.malicious ? 'YES' : 'NO'}\n- Risk Score: ${sandbox.score}\n- Categories: ${sandbox.categories.join(', ')}`;
+    }
+
+    // Call Lovable AI for triple-AI analysis with enhanced context
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -41,13 +178,39 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are Zerophish AI, a sophisticated phishing detection system with three specialized AI detectives:
+            content: `You are Zerophish AI, an advanced multi-layered phishing detection system with specialized AI detectives and adversarial detection capabilities:
 
-1. NLP Detective (Text Analysis): Analyzes language patterns, urgency indicators, grammatical errors, threatening tone, AI-generated content
-2. Visual Detective (Visual Analysis): Examines logos, colors, layouts, brand spoofing, image quality
-3. Network Detective (Infrastructure Analysis): Checks domain age, SSL certificates, hosting location, DNS patterns
+**MULTI-LANGUAGE DETECTION**: You MUST detect and analyze phishing attempts in ALL LANGUAGES including but not limited to: English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Hindi, Russian, Portuguese, Italian, Dutch, Swedish, Polish, Turkish, Thai, Vietnamese, Indonesian, and any other language. Phishing patterns transcend language barriers.
 
-Analyze the provided content and return a JSON response with this exact structure:
+**Three Specialized AI Detectives:**
+
+1. **NLP Detective (Text Analysis)**: 
+   - Analyzes language patterns, urgency indicators, grammatical errors, threatening tone
+   - Detects AI-generated content and synthetic text patterns
+   - Identifies multi-language social engineering tactics
+   - Recognizes emotional manipulation regardless of language
+
+2. **Visual Detective (Visual Analysis)**: 
+   - Examines logos, colors, layouts, brand spoofing
+   - Detects image quality issues and manipulation
+   - Identifies visual cues across different cultural contexts
+
+3. **Network Detective (Infrastructure Analysis)**: 
+   - Analyzes domain age, SSL certificates, hosting location
+   - Examines DNS patterns and IP reputation
+   - Correlates threat intelligence data
+   - Identifies infrastructure anomalies and adversarial tactics
+
+**Adversarial Layer Detection:**
+- Cross-reference with threat intelligence databases (AlienVault OTX)
+- Analyze infrastructure origin (IP geolocation, ASN, ISP)
+- Detect domain generation algorithms (DGA)
+- Identify command & control (C2) patterns
+- Recognize known attacker infrastructure
+- Analyze hosting patterns typical of phishing campaigns
+- Detect obfuscation and evasion techniques
+
+Analyze the provided content (which includes threat intelligence and infrastructure data) and return a JSON response with this exact structure:
 {
   "threat": "high" | "medium" | "low",
   "confidence": 0-100,
@@ -68,15 +231,20 @@ Analyze the provided content and return a JSON response with this exact structur
 }
 
 Score = suspicion level (higher = more suspicious)
-- High threat (91-100%): All detectives agree it's dangerous
-- Medium threat (70-90%): 2/3 detectives agree it's suspicious
-- Low threat (<30%): Content appears safe
+- High threat (91-100%): All detectives agree it's dangerous OR threat intelligence confirms malicious
+- Medium threat (70-90%): 2/3 detectives agree it's suspicious OR infrastructure shows red flags
+- Low threat (<30%): Content appears safe AND no threat intelligence hits
 
-Be thorough and accurate. Real phishing attempts must be caught.`
+**CRITICAL INSTRUCTIONS:**
+- Analyze content in ANY language - phishing knows no language barriers
+- Weight threat intelligence data heavily - known malicious indicators should increase threat level significantly
+- Consider infrastructure anomalies (unusual country/ASN combinations, known malicious hosting providers)
+- Detect adversarial tactics like domain spoofing, typosquatting, lookalike domains
+- Be thorough and accurate. Real phishing attempts in any language must be caught.`
           },
           {
             role: 'user',
-            content: `Analyze this ${contentType}:\n\n${content}`
+            content: `Analyze this ${contentType} with all available context:\n\n${enhancedContext}`
           }
         ],
         response_format: { type: "json_object" }

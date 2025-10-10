@@ -34,10 +34,14 @@ const ThreatMap = ({ threats }: ThreatMapProps) => {
           .map(async (threat) => {
             try {
               const ip = threat.user_ip.split(',')[0].trim();
-              const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,lat,lon`);
-              const data = await response.json();
               
-              if (data.status === 'success') {
+              // Use edge function to avoid CORS issues
+              const { supabase } = await import('@/integrations/supabase/client');
+              const { data, error } = await supabase.functions.invoke('geolocate-ip', {
+                body: { ip }
+              });
+              
+              if (!error && data?.status === 'success') {
                 return {
                   id: threat.id,
                   coordinates: [data.lon, data.lat] as [number, number],
