@@ -51,45 +51,51 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       return;
     }
 
-    // Check if auto-scan is enabled
-    const { autoScan = true } = await chrome.storage.local.get('autoScan');
+    // Check if auto-scan is enabled (opt-in by default)
+    const { autoScan = false } = await chrome.storage.local.get('autoScan');
     
     if (!autoScan) {
       return;
     }
 
-    // Analyze the URL
+    // Analyze the URL with error handling
     const result = await analyzeURL(tab.url);
     
-    if (result) {
-      // Store result for popup
-      await chrome.storage.local.set({
-        [`analysis_${tabId}`]: {
-          url: tab.url,
-          result: result,
-          timestamp: Date.now()
-        }
-      });
-
-      // Show notification for threats
-      if (result.threat === 'high') {
-        showNotification(
-          '🚨 BLOCKED - High Risk Detected!',
-          `Zerophish blocked this dangerous site: ${result.reason}`,
-          'high'
-        );
-        
-        // Optionally block the page
-        chrome.tabs.update(tabId, {
-          url: chrome.runtime.getURL('blocked.html') + '?url=' + encodeURIComponent(tab.url)
-        });
-      } else if (result.threat === 'medium') {
-        showNotification(
-          '⚠️ WARNING - Suspicious Activity',
-          `Be careful: ${result.reason}`,
-          'medium'
-        );
+    if (!result) {
+      // Don't block on API failure - just log for debugging
+      console.warn('Analysis failed for:', tab.url);
+      return;
+    }
+    
+    // Store result for popup
+    await chrome.storage.local.set({
+      [`analysis_${tabId}`]: {
+        url: tab.url,
+        result: result,
+        timestamp: Date.now()
       }
+    });
+
+    // Show notification and warning overlay (not automatic block)
+    if (result.threat === 'high') {
+      showNotification(
+        '🚨 WARNING - High Risk Detected!',
+        `Zerophish detected a dangerous site: ${result.reason}`,
+        'high'
+      );
+      
+      // Inject warning overlay instead of blocking
+      chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        func: showWarningOverlay,
+        args: [result.reason, tab.url]
+      });
+    } else if (result.threat === 'medium') {
+      showNotification(
+        '⚠️ WARNING - Suspicious Activity',
+        `Be careful: ${result.reason}`,
+        'medium'
+      );
     }
   }
 });

@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, Menu, X } from "lucide-react";
+import { Shield, Menu, X, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,6 +19,29 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/");
+  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -72,19 +99,40 @@ const Navbar = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              className="border-primary/50 hover:bg-primary/10"
-              onClick={() => navigate("/demo")}
-            >
-              Try Demo
-            </Button>
-            <Button 
-              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow"
-              onClick={() => window.open("https://chrome.google.com/webstore", "_blank")}
-            >
-              Get Extension
-            </Button>
+            {isLoggedIn ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="border-primary/50 hover:bg-primary/10"
+                  onClick={() => navigate("/dashboard")}
+                >
+                  Dashboard
+                </Button>
+                <Button 
+                  variant="ghost"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="border-primary/50 hover:bg-primary/10"
+                  onClick={() => navigate("/demo")}
+                >
+                  Try Demo
+                </Button>
+                <Button 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow"
+                  onClick={() => navigate("/auth")}
+                >
+                  Login
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -131,22 +179,53 @@ const Navbar = () => {
                 Dashboard
               </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                <Button 
-                  variant="outline" 
-                  className="border-primary/50 hover:bg-primary/10 w-full"
-                  onClick={() => {
-                    navigate("/demo");
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
-                  Try Demo
-                </Button>
-                <Button 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
-                  onClick={() => window.open("https://chrome.google.com/webstore", "_blank")}
-                >
-                  Get Extension
-                </Button>
+                {isLoggedIn ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="border-primary/50 hover:bg-primary/10 w-full"
+                      onClick={() => {
+                        navigate("/dashboard");
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      Dashboard
+                    </Button>
+                    <Button 
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="border-primary/50 hover:bg-primary/10 w-full"
+                      onClick={() => {
+                        navigate("/demo");
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      Try Demo
+                    </Button>
+                    <Button 
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
+                      onClick={() => {
+                        navigate("/auth");
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      Login
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

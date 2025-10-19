@@ -43,9 +43,21 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Geolocation error:', error);
+    const requestId = crypto.randomUUID();
+    // Log detailed error server-side
+    console.error('Geolocation failed:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+      requestId
+    });
+
+    // Return generic error to client
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Geolocation failed' }),
+      JSON.stringify({ 
+        error: 'Geolocation service unavailable. Please try again later.',
+        requestId 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

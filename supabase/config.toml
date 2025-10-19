@@ -5,6 +5,3 @@ verify_jwt = false
 
 [functions.geolocate-ip]
 verify_jwt = false
-
-[functions.get-threats]
-verify_jwt = false

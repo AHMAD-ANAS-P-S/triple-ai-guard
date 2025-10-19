@@ -117,20 +117,107 @@ async function analyzeInfrastructure(url: string): Promise<any> {
   }
 }
 
+// Simple rate limiting using in-memory storage (for production, use Deno KV or external service)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const limit = rateLimitMap.get(ip);
+  
+  if (!limit || now > limit.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + 60000 }); // 1 minute window
+    return true;
+  }
+  
+  if (limit.count >= 10) { // 10 requests per minute
+    return false;
+  }
+  
+  limit.count++;
+  return true;
+}
+
+// Input validation schema
+interface ValidationResult {
+  valid: boolean;
+  error?: string;
+  data?: { url?: string; emailContent?: string };
+}
+
+function validateInput(data: any): ValidationResult {
+  if (!data || typeof data !== 'object') {
+    return { valid: false, error: 'Invalid request format' };
+  }
+
+  const { url, emailContent } = data;
+
+  if (!url && !emailContent) {
+    return { valid: false, error: 'Either url or emailContent must be provided' };
+  }
+
+  // Validate URL if provided
+  if (url) {
+    if (typeof url !== 'string' || url.length > 2048) {
+      return { valid: false, error: 'URL must be a string with maximum length of 2048 characters' };
+    }
+    try {
+      new URL(url);
+    } catch {
+      return { valid: false, error: 'Invalid URL format' };
+    }
+  }
+
+  // Validate email content if provided
+  if (emailContent) {
+    if (typeof emailContent !== 'string' || emailContent.length > 50000) {
+      return { valid: false, error: 'Email content must be a string with maximum length of 50KB' };
+    }
+  }
+
+  return { valid: true, data: { url, emailContent } };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID();
+
   try {
-    const { url, emailContent } = await req.json();
-    
-    if (!url && !emailContent) {
+    // Rate limiting
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    if (!checkRateLimit(clientIp)) {
+      console.error(`Rate limit exceeded for IP: ${clientIp}`, { requestId });
       return new Response(
-        JSON.stringify({ error: 'URL or email content required' }),
+        JSON.stringify({ 
+          error: 'Too many requests. Please try again later.',
+          requestId 
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse and validate input
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON format', requestId }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const validation = validateInput(requestData);
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ error: validation.error, requestId }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { url, emailContent } = validation.data!;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -311,9 +398,20 @@ Score = suspicion level (higher = more suspicious)
     );
 
   } catch (error) {
-    console.error('Error in analyze-phishing:', error);
+    // Log detailed error server-side
+    console.error('Analysis failed:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+      requestId
+    });
+
+    // Return generic error to client
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Analysis failed' }),
+      JSON.stringify({ 
+        error: 'Analysis failed. Please try again later.',
+        requestId 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

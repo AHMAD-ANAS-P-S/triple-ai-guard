@@ -1,11 +1,12 @@
 // Zerophish AI Popup Script
 document.addEventListener('DOMContentLoaded', async () => {
-  // Load settings
-  const { autoScan = true, stats = { blocked: 0, scanned: 0 } } = await chrome.storage.local.get(['autoScan', 'stats']);
+  // Load settings - default to opt-in (false)
+  const { autoScan = false, stats = { blocked: 0, scanned: 0 } } = await chrome.storage.local.get(['autoScan', 'stats']);
   
   document.getElementById('autoScan').checked = autoScan;
   document.getElementById('threatsBlocked').textContent = stats.blocked || 0;
   document.getElementById('sitesScanned').textContent = stats.scanned || 0;
+  document.getElementById('protectionStatus').textContent = autoScan ? '🟢 Active' : '🔴 Disabled';
 
   // Auto-scan toggle
   document.getElementById('autoScan').addEventListener('change', async (e) => {

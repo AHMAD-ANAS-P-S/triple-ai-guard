@@ -34,11 +34,22 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error fetching threats:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const requestId = crypto.randomUUID();
+    // Log detailed error server-side
+    console.error('Failed to fetch threats:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+      requestId
     });
+
+    // Return generic error to client
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to fetch threat data. Please try again later.',
+        requestId 
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
