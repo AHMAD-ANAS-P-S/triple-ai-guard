@@ -28,55 +28,54 @@ const ThreatMap = ({ threats }: ThreatMapProps) => {
 
   useEffect(() => {
     const fetchLocations = async () => {
-      try {
-        const locationPromises = threats
-          .filter(threat => threat.user_ip)
-          .map(async (threat) => {
-            try {
-              const ip = threat.user_ip.split(',')[0].trim();
-              
-              // Use edge function to avoid CORS issues
-              const { supabase } = await import('@/integrations/supabase/client');
-              const { data, error } = await supabase.functions.invoke('geolocate-ip', {
-                body: { ip }
-              });
-              
-              if (!error && data?.status === 'success') {
-                return {
-                  id: threat.id,
-                  coordinates: [data.lon, data.lat] as [number, number],
-                  country: data.country,
-                  ip: threat.user_ip,
-                  domain: threat.url ? new URL(threat.url).hostname : 'Email',
-                  threatLevel: threat.threat_level,
-                  count: 1
-                };
-              }
-            } catch (error) {
-              console.error('Error fetching location:', error);
-            }
-            return null;
+      setLoading(true);
+      const locationMap = new Map<string, ThreatLocation>();
+
+      for (const threat of threats) {
+        if (!threat.user_ip) continue;
+
+        try {
+          // user_ip is now partially masked (***.***.***.[last octet])
+          const ipDisplay = threat.user_ip;
+
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data, error } = await supabase.functions.invoke('geolocate-ip', {
+            body: { ip: threat.user_ip }
           });
 
-        const locations = (await Promise.all(locationPromises)).filter(Boolean) as ThreatLocation[];
-        
-        // Aggregate by country
-        const aggregated = locations.reduce((acc, loc) => {
-          const key = `${loc.country}-${loc.coordinates[0]}-${loc.coordinates[1]}`;
-          if (acc[key]) {
-            acc[key].count++;
-          } else {
-            acc[key] = loc;
+          if (error) {
+            console.error('Geolocation error:', error);
+            continue;
           }
-          return acc;
-        }, {} as Record<string, ThreatLocation>);
 
-        setThreatLocations(Object.values(aggregated));
-      } catch (error) {
-        console.error('Error processing locations:', error);
-      } finally {
-        setLoading(false);
+          if (!data?.latitude || !data?.longitude) continue;
+
+          const key = `${data.latitude},${data.longitude},${data.country}`;
+          
+          if (locationMap.has(key)) {
+            const existing = locationMap.get(key)!;
+            existing.count += 1;
+            if (threat.threat_level === 'high' && existing.threatLevel !== 'high') {
+              existing.threatLevel = 'high';
+            }
+          } else {
+            locationMap.set(key, {
+              id: threat.id,
+              coordinates: [data.longitude, data.latitude],
+              country: data.country || 'Unknown',
+              ip: ipDisplay,
+              domain: threat.url ? new URL(threat.url).hostname : 'Unknown',
+              threatLevel: threat.threat_level,
+              count: 1
+            });
+          }
+        } catch (error) {
+          console.error('Error processing threat location:', error);
+        }
       }
+
+      setThreatLocations(Array.from(locationMap.values()));
+      setLoading(false);
     };
 
     if (threats.length > 0) {

@@ -21,26 +21,18 @@ const Dashboard = () => {
   useEffect(() => {
     fetchThreats();
     
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel('threats-changes')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'threats' },
-        () => fetchThreats()
-      )
-      .subscribe();
+    // Poll for updates every 10 seconds
+    const interval = setInterval(fetchThreats, 10000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
   const fetchThreats = async () => {
     try {
-      const { data, error } = await supabase
-        .from('threats')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use secure edge function instead of direct database access
+      const { data, error } = await supabase.functions.invoke('get-threats');
 
       if (error) throw error;
 
@@ -48,9 +40,9 @@ const Dashboard = () => {
       
       // Calculate stats
       const total = data?.length || 0;
-      const blocked = data?.filter(t => t.threat_level === 'high').length || 0;
-      const warned = data?.filter(t => t.threat_level === 'medium').length || 0;
-      const safe = data?.filter(t => t.threat_level === 'low').length || 0;
+      const blocked = data?.filter((t: any) => t.threat_level === 'high').length || 0;
+      const warned = data?.filter((t: any) => t.threat_level === 'medium').length || 0;
+      const safe = data?.filter((t: any) => t.threat_level === 'low').length || 0;
       
       setStats({ total, blocked, warned, safe, avgResponseTime: "42ms" });
     } catch (error) {
