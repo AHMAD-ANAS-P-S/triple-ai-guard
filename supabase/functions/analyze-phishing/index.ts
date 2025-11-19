@@ -493,7 +493,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const content = url || emailContent;
+    const content = url || emailContent || '';
     const contentType = url ? 'URL' : 'Email/SMS content';
 
     // Perform ALL detection layers in parallel
