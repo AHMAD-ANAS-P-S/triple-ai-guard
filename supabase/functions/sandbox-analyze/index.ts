@@ -40,7 +40,14 @@ serve(async (req) => {
     const htmlContent = await fetchResponse.text();
 
     // Analyze page for malicious behavior
-    const analysis = {
+    const analysis: {
+      redirects: string[];
+      forms: Array<{hasPassword: boolean; hasEmail: boolean; action: string; suspicious: boolean}>;
+      externalScripts: string[];
+      suspiciousPatterns: string[];
+      javascriptBehavior: string[];
+      iframes: string[];
+    } = {
       redirects: [],
       forms: [],
       externalScripts: [],
