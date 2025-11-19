@@ -3,5 +3,17 @@ project_id = "giucniweqsloezqppsac"
 [functions.analyze-phishing]
 verify_jwt = false
 
+[functions.get-threats]
+verify_jwt = true
+
 [functions.geolocate-ip]
 verify_jwt = false
+
+[functions.scan-qr-code]
+verify_jwt = false
+
+[functions.analyze-vishing]
+verify_jwt = true
+
+[functions.sandbox-analyze]
+verify_jwt = true
