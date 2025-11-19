@@ -25,7 +25,12 @@
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": [
+        "content.js",
+        "qr-scanner.js",
+        "link-scanner.js",
+        "isolation.js"
+      ],
       "run_at": "document_idle"
     }
   ],
