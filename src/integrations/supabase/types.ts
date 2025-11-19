@@ -14,69 +14,241 @@ export type Database = {
   }
   public: {
     Tables: {
+      organizations: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          soc_enabled: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          soc_enabled?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          soc_enabled?: boolean | null
+        }
+        Relationships: []
+      }
       threats: {
         Row: {
+          adversarial_issues: Json | null
+          adversarial_score: number | null
+          ai_explanation: string | null
+          asn: string | null
+          attack_type: string | null
+          behavior_issues: Json | null
+          behavior_score: number | null
+          breach_data: Json | null
           confidence: number
           created_at: string | null
+          credential_harvesting_detected: boolean | null
+          deepfake_detected: boolean | null
+          dkim_pass: boolean | null
+          dmarc_pass: boolean | null
+          dom_manipulation_detected: boolean | null
+          email_authentication_status: string | null
           email_content: string | null
+          exposure_score: number | null
+          homograph_detected: boolean | null
           id: string
+          isp: string | null
+          manipulation_tactics: Json | null
           network_issues: Json | null
           network_score: number
           nlp_issues: Json | null
           nlp_score: number
+          obfuscation_detected: boolean | null
+          organization_id: string | null
+          punycode_detected: boolean | null
+          qr_code_detected: boolean | null
+          qr_destination_url: string | null
           reason: string
+          sandbox_analyzed: boolean | null
+          sandbox_report: Json | null
+          sender_reputation: number | null
+          social_engineering_score: number | null
+          spf_pass: boolean | null
+          subdomain_depth: number | null
+          threat_intel_sources: Json | null
           threat_level: string
           url: string | null
+          url_decomposition: Json | null
+          url_decomposition_score: number | null
           user_ip: string | null
           verdict: string
+          vishing_explanation: string | null
+          vishing_score: number | null
           visual_issues: Json | null
           visual_score: number
+          writing_style_score: number | null
         }
         Insert: {
+          adversarial_issues?: Json | null
+          adversarial_score?: number | null
+          ai_explanation?: string | null
+          asn?: string | null
+          attack_type?: string | null
+          behavior_issues?: Json | null
+          behavior_score?: number | null
+          breach_data?: Json | null
           confidence: number
           created_at?: string | null
+          credential_harvesting_detected?: boolean | null
+          deepfake_detected?: boolean | null
+          dkim_pass?: boolean | null
+          dmarc_pass?: boolean | null
+          dom_manipulation_detected?: boolean | null
+          email_authentication_status?: string | null
           email_content?: string | null
+          exposure_score?: number | null
+          homograph_detected?: boolean | null
           id?: string
+          isp?: string | null
+          manipulation_tactics?: Json | null
           network_issues?: Json | null
           network_score: number
           nlp_issues?: Json | null
           nlp_score: number
+          obfuscation_detected?: boolean | null
+          organization_id?: string | null
+          punycode_detected?: boolean | null
+          qr_code_detected?: boolean | null
+          qr_destination_url?: string | null
           reason: string
+          sandbox_analyzed?: boolean | null
+          sandbox_report?: Json | null
+          sender_reputation?: number | null
+          social_engineering_score?: number | null
+          spf_pass?: boolean | null
+          subdomain_depth?: number | null
+          threat_intel_sources?: Json | null
           threat_level: string
           url?: string | null
+          url_decomposition?: Json | null
+          url_decomposition_score?: number | null
           user_ip?: string | null
           verdict: string
+          vishing_explanation?: string | null
+          vishing_score?: number | null
           visual_issues?: Json | null
           visual_score: number
+          writing_style_score?: number | null
         }
         Update: {
+          adversarial_issues?: Json | null
+          adversarial_score?: number | null
+          ai_explanation?: string | null
+          asn?: string | null
+          attack_type?: string | null
+          behavior_issues?: Json | null
+          behavior_score?: number | null
+          breach_data?: Json | null
           confidence?: number
           created_at?: string | null
+          credential_harvesting_detected?: boolean | null
+          deepfake_detected?: boolean | null
+          dkim_pass?: boolean | null
+          dmarc_pass?: boolean | null
+          dom_manipulation_detected?: boolean | null
+          email_authentication_status?: string | null
           email_content?: string | null
+          exposure_score?: number | null
+          homograph_detected?: boolean | null
           id?: string
+          isp?: string | null
+          manipulation_tactics?: Json | null
           network_issues?: Json | null
           network_score?: number
           nlp_issues?: Json | null
           nlp_score?: number
+          obfuscation_detected?: boolean | null
+          organization_id?: string | null
+          punycode_detected?: boolean | null
+          qr_code_detected?: boolean | null
+          qr_destination_url?: string | null
           reason?: string
+          sandbox_analyzed?: boolean | null
+          sandbox_report?: Json | null
+          sender_reputation?: number | null
+          social_engineering_score?: number | null
+          spf_pass?: boolean | null
+          subdomain_depth?: number | null
+          threat_intel_sources?: Json | null
           threat_level?: string
           url?: string | null
+          url_decomposition?: Json | null
+          url_decomposition_score?: number | null
           user_ip?: string | null
           verdict?: string
+          vishing_explanation?: string | null
+          vishing_score?: number | null
           visual_issues?: Json | null
           visual_score?: number
+          writing_style_score?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "threats_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user" | "soc_analyst"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -203,6 +375,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user", "soc_analyst"],
+    },
   },
 } as const

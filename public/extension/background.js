@@ -106,7 +106,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     analyzeURL('', request.emailContent).then(result => {
       sendResponse({ success: true, result });
     });
-    return true; // Keep channel open for async response
+    return true;
   }
   
   if (request.action === 'analyzeCurrentPage') {
@@ -117,6 +117,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     });
     return true;
+  }
+  
+  if (request.action === 'behavioralReport') {
+    console.log('Behavioral data received:', request.data);
+    // Store for dashboard reporting
+    chrome.storage.local.set({ [`behavioral_${Date.now()}`]: request.data });
+  }
+  
+  if (request.action === 'qrCodesDetected') {
+    console.log('QR codes detected:', request.data);
+    showNotification('QR Code Detected', `Found ${request.data.count} QR code(s) on this page`, 'medium');
+  }
+  
+  if (request.action === 'analyzeLinkHover') {
+    analyzeURL(request.url).then(result => {
+      sendResponse({ success: true, result });
+    });
+    return true;
+  }
+  
+  if (request.action === 'scanQRCode') {
+    // In production, decode QR and analyze destination
+    console.log('QR scan requested:', request.data);
   }
 });
 

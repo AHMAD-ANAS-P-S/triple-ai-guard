@@ -253,7 +253,7 @@ serve(async (req) => {
       enhancedContext += `\n\nSANDBOX ANALYSIS:\n- Malicious Verdict: ${sandbox.malicious ? 'YES' : 'NO'}\n- Risk Score: ${sandbox.score}\n- Categories: ${sandbox.categories.join(', ')}`;
     }
 
-    // Call Lovable AI for triple-AI analysis with enhanced context
+    // Call Lovable AI for enterprise-grade multi-engine analysis
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -265,65 +265,88 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are Zerophish AI, an advanced multi-layered phishing detection system with specialized AI detectives and adversarial detection capabilities:
+            content: `You are Zerophish AI, an enterprise-grade phishing detection system with 6 specialized detection engines:
 
-**MULTI-LANGUAGE DETECTION**: You MUST detect and analyze phishing attempts in ALL LANGUAGES including but not limited to: English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Hindi, Russian, Portuguese, Italian, Dutch, Swedish, Polish, Turkish, Thai, Vietnamese, Indonesian, and any other language. Phishing patterns transcend language barriers.
+**MULTI-LANGUAGE DETECTION**: Analyze ALL LANGUAGES including English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Hindi, Tamil, Russian, Portuguese, Italian, Dutch, Swedish, Polish, Turkish, Thai, Vietnamese, Indonesian, and any other language.
 
-**Three Specialized AI Detectives:**
+**Six Specialized Detection Engines:**
 
 1. **NLP Detective (Text Analysis)**: 
-   - Analyzes language patterns, urgency indicators, grammatical errors, threatening tone
-   - Detects AI-generated content and synthetic text patterns
-   - Identifies multi-language social engineering tactics
-   - Recognizes emotional manipulation regardless of language
+   - Language patterns, urgency, grammatical errors, threatening tone
+   - AI-generated content and synthetic text patterns
+   - Multi-language social engineering tactics
+   - Emotional manipulation detection
 
 2. **Visual Detective (Visual Analysis)**: 
-   - Examines logos, colors, layouts, brand spoofing
-   - Detects image quality issues and manipulation
-   - Identifies visual cues across different cultural contexts
+   - Logos, colors, layouts, brand spoofing
+   - Image quality issues and manipulation
+   - Visual cues across cultural contexts
 
 3. **Network Detective (Infrastructure Analysis)**: 
-   - Analyzes domain age, SSL certificates, hosting location
-   - Examines DNS patterns and IP reputation
-   - Correlates threat intelligence data
-   - Identifies infrastructure anomalies and adversarial tactics
+   - Domain age, SSL certificates, hosting location
+   - DNS patterns and IP reputation
+   - Threat intelligence correlation
+
+4. **Behavioral Detective (NEW)**: 
+   - DOM manipulation patterns
+   - Malicious JavaScript behavior
+   - Credential harvesting attempts
+   - Clipboard hijacking indicators
+   - Keylogging patterns
+
+5. **Social Engineering Detective (NEW)**: 
+   - Urgency tactics ("act now", "limited time")
+   - Fear tactics ("account suspended", "security breach")
+   - Authority impersonation (government, banks, tech support)
+   - Reward/bounty tactics ("you've won", "claim prize")
+   - Payment pressure ("urgent payment", "overdue")
+   - Trust exploitation patterns
+   - Multi-language persuasion tactics
+
+6. **URL Decomposition Detective (NEW)**:
+   - Subdomain depth analysis (excessive nesting)
+   - Unicode/punycode detection (homograph attacks)
+   - Hidden redirection chains
+   - Suspicious URL patterns
+   - Domain age and registration anomalies
 
 **Adversarial Layer Detection:**
-- Cross-reference with threat intelligence databases (AlienVault OTX)
-- Analyze infrastructure origin (IP geolocation, ASN, ISP)
-- Detect domain generation algorithms (DGA)
-- Identify command & control (C2) patterns
-- Recognize known attacker infrastructure
-- Analyze hosting patterns typical of phishing campaigns
-- Detect obfuscation and evasion techniques
+- Threat intelligence cross-reference (AlienVault OTX)
+- Infrastructure analysis (IP geolocation, ASN, ISP)
+- Domain generation algorithms (DGA)
+- Command & control (C2) patterns
+- Obfuscation and evasion techniques
+- Known attacker infrastructure
+- Email authentication (SPF, DKIM, DMARC)
 
-Analyze the provided content (which includes threat intelligence and infrastructure data) and return a JSON response with this exact structure:
+Return JSON with this structure:
 {
   "threat": "high" | "medium" | "low",
   "confidence": 0-100,
   "verdict": "BLOCKED" | "WARNING" | "SAFE",
   "reason": "Brief explanation",
-  "nlp": {
-    "score": 0-100,
+  "nlp": { "score": 0-100, "issues": ["issue1", "issue2"] },
+  "visual": { "score": 0-100, "issues": ["issue1", "issue2"] },
+  "network": { "score": 0-100, "issues": ["issue1", "issue2"] },
+  "behavior": { "score": 0-100, "issues": ["issue1", "issue2"] },
+  "social_engineering": { "score": 0-100, "tactics": ["tactic1", "tactic2"] },
+  "url_decomposition": { 
+    "score": 0-100, 
+    "subdomain_depth": 0-10,
+    "homograph_detected": true/false,
+    "punycode_detected": true/false,
     "issues": ["issue1", "issue2"]
   },
-  "visual": {
-    "score": 0-100,
-    "issues": ["issue1", "issue2"]
-  },
-  "network": {
-    "score": 0-100,
-    "issues": ["issue1", "issue2"]
-  }
+  "adversarial": { "score": 0-100, "issues": ["issue1", "issue2"] },
+  "ai_explanation": "Detailed human-readable explanation of why this is dangerous/safe, what indicators were found, severity level"
 }
 
 Score = suspicion level (higher = more suspicious)
-- High threat (91-100%): All detectives agree it's dangerous OR threat intelligence confirms malicious
-- Medium threat (70-90%): 2/3 detectives agree it's suspicious OR infrastructure shows red flags
+- High threat (91-100%): Multiple engines agree it's dangerous OR threat intelligence confirms malicious
+- Medium threat (70-90%): 2+ engines agree suspicious OR infrastructure shows red flags  
 - Low threat (<30%): Content appears safe AND no threat intelligence hits
 
-**CRITICAL INSTRUCTIONS:**
-- Analyze content in ANY language - phishing knows no language barriers
+**CRITICAL**: Always provide ai_explanation that describes why the threat was detected, which engines flagged it, and how severe it is.
 - Weight threat intelligence data heavily - known malicious indicators should increase threat level significantly
 - Consider infrastructure anomalies (unusual country/ASN combinations, known malicious hosting providers)
 - Detect adversarial tactics like domain spoofing, typosquatting, lookalike domains
@@ -362,7 +385,7 @@ Score = suspicion level (higher = more suspicious)
     const aiData = await aiResponse.json();
     const result = JSON.parse(aiData.choices[0].message.content);
 
-    // Store the threat in database
+    // Store the threat in database with all enterprise detection data
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -377,12 +400,38 @@ Score = suspicion level (higher = more suspicious)
         confidence: result.confidence,
         verdict: result.verdict,
         reason: result.reason,
+        // Original triple-AI scores
         nlp_score: result.nlp.score,
         nlp_issues: result.nlp.issues,
         visual_score: result.visual.score,
         visual_issues: result.visual.issues,
         network_score: result.network.score,
         network_issues: result.network.issues,
+        // NEW: Behavioral AI Layer
+        behavior_score: result.behavior?.score || 0,
+        behavior_issues: result.behavior?.issues || [],
+        // NEW: Social Engineering Detection
+        social_engineering_score: result.social_engineering?.score || 0,
+        manipulation_tactics: result.social_engineering?.tactics || [],
+        // NEW: URL Decomposition Engine
+        url_decomposition_score: result.url_decomposition?.score || 0,
+        subdomain_depth: result.url_decomposition?.subdomain_depth || 0,
+        homograph_detected: result.url_decomposition?.homograph_detected || false,
+        punycode_detected: result.url_decomposition?.punycode_detected || false,
+        url_decomposition: result.url_decomposition || {},
+        // NEW: Adversarial Detection
+        adversarial_score: result.adversarial?.score || 0,
+        adversarial_issues: result.adversarial?.issues || [],
+        // NEW: AI-Generated Explanation
+        ai_explanation: result.ai_explanation || result.reason,
+        // Infrastructure data
+        asn: infrastructure?.asn || null,
+        isp: infrastructure?.isp || null,
+        // Threat intelligence sources
+        threat_intel_sources: threatIntel ? [{ source: 'AlienVault OTX', ...threatIntel }] : [],
+        // Sandbox data
+        sandbox_report: sandbox || {},
+        sandbox_analyzed: sandbox ? true : false,
         user_ip: req.headers.get('x-forwarded-for') || 'unknown'
       });
 

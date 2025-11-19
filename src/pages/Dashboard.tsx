@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import ThreatMap from "@/components/ThreatMap";
+import EnterpriseFeatures from "@/components/EnterpriseFeatures";
 
 const Dashboard = () => {
   const [threats, setThreats] = useState<any[]>([]);
@@ -96,6 +97,9 @@ const Dashboard = () => {
               </Badge>
             </div>
           </div>
+
+          {/* Enterprise Features */}
+          <EnterpriseFeatures />
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
