@@ -25,7 +25,7 @@
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["content.js", "behavioral-detector.js", "qr-detector.js", "link-scanner.js", "isolation-mode.js"],
       "run_at": "document_idle"
     }
   ],
