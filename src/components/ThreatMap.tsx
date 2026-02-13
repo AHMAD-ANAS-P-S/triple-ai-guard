@@ -48,9 +48,12 @@ const ThreatMap = ({ threats }: ThreatMapProps) => {
             continue;
           }
 
-          if (!data?.latitude || !data?.longitude) continue;
+          // Support both lat/lon and latitude/longitude field names
+          const lat = data?.latitude ?? data?.lat;
+          const lon = data?.longitude ?? data?.lon;
+          if (!lat || !lon) continue;
 
-          const key = `${data.latitude},${data.longitude},${data.country}`;
+          const key = `${lat},${lon},${data.country}`;
           
           if (locationMap.has(key)) {
             const existing = locationMap.get(key)!;
@@ -61,7 +64,7 @@ const ThreatMap = ({ threats }: ThreatMapProps) => {
           } else {
             locationMap.set(key, {
               id: threat.id,
-              coordinates: [data.longitude, data.latitude],
+              coordinates: [lon, lat],
               country: data.country || 'Unknown',
               ip: ipDisplay,
               domain: threat.url ? new URL(threat.url).hostname : 'Unknown',
