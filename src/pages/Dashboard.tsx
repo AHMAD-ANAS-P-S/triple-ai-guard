@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import ThreatMap from "@/components/ThreatMap";
 import EnterpriseFeatures from "@/components/EnterpriseFeatures";
+import ThreatDetailModal from "@/components/ThreatDetailModal";
 
 const Dashboard = () => {
   const [threats, setThreats] = useState<any[]>([]);
@@ -18,6 +19,7 @@ const Dashboard = () => {
     avgResponseTime: "42ms"
   });
   const [loading, setLoading] = useState(true);
+  const [selectedThreat, setSelectedThreat] = useState<any>(null);
 
   useEffect(() => {
     fetchThreats();
@@ -192,7 +194,8 @@ const Dashboard = () => {
                     threats.slice(0, 5).map((threat) => (
                       <div 
                         key={threat.id}
-                        className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary/30 transition-all"
+                        onClick={() => setSelectedThreat(threat)}
+                        className="flex items-start gap-4 p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary/30 transition-all cursor-pointer"
                       >
                         <div className={`p-2 rounded-lg bg-${getStatusColor(threat.threat_level)}/10 border border-${getStatusColor(threat.threat_level)}/20 flex-shrink-0`}>
                           {threat.threat_level === 'high' && <Shield className="w-5 h-5 text-destructive" />}
@@ -283,6 +286,12 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+
+      <ThreatDetailModal
+        threat={selectedThreat}
+        open={!!selectedThreat}
+        onOpenChange={(open) => !open && setSelectedThreat(null)}
+      />
 
       <Footer />
     </div>
